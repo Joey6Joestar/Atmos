@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <title>Login - PartyNow</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='styles.css')}}">
+
+    </head>
+
+    <body class="page">
+        <div class="card">
+            <h1>Login</h1>
+            <p>Demo Login</p>
+
+            <form class="form" action="{{ url_for('upload')}}" method="GET">
+                <label>
+                    Email
+                    <input type="email" placeholder="joey@example.com" required>
+                </label>
+
+                <label>
+                    Password
+                    <input type="password" placeholder="********" required>
+                </label>
+
+                <button class="btn" type="Submit">Continue</button>
+            </form>
+
+            <a class="link" href="{{ url_for('splash')}}">Back</a>
+        </div>
+    </body>
+</html>
