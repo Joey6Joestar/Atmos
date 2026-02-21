@@ -94,11 +94,35 @@ def logout():
 def upload():
     if request.method == "POST":
         file = request.files.get("photo")
-        if file and file.filename:
-            filepath = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
-            file.save(filepath)
-            return f"Uploaded successfully: {file.filename}"
+        party_prompt = (request.form.get("partyPrompt") or "").strip()
 
+        if not file or file.filename == "":
+            return render_template(
+                "upload.html",
+                user=current_user,
+                success=False,
+                filename=None,
+                party_prompt=None
+            )
+
+        filepath = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
+        file.save(filepath)
+
+        return render_template(
+            "upload.html",
+            user=current_user,
+            success=True,
+            filename=file.filename,
+            party_prompt=party_prompt
+        )
+
+    return render_template(
+        "upload.html",
+        user=current_user,
+        success=False,
+        filename=None,
+        party_prompt=None
+    )
     return render_template("upload.html", user=current_user)
 
 with app.app_context():
