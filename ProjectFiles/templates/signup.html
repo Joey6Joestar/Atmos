@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign Up - PartyNow</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+
+<body class="page">
+  <div class="card">
+    <h1>Sign Up</h1>
+    <p>Create your PartyNow account</p>
+
+    <!-- Flash messages (errors / success like "account created") -->
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flash">
+          {% for msg in messages %}
+            <p>{{ msg }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form class="form" method="POST" action="{{ url_for('signup') }}">
+      <label>
+        Email
+        <input name="email" type="email" placeholder="joey@example.com" required>
+      </label>
+
+      <label>
+        Password
+        <input name="password" type="password" placeholder="********" required>
+      </label>
+
+      <button class="btn" type="submit">Create account</button>
+    </form>
+
+    <p style="margin-top: 15px;">
+      Already have an account?
+      <a class="link" href="{{ url_for('login') }}">Log in</a>
+    </p>
+
+    <a class="link" href="{{ url_for('splash') }}">Back</a>
+  </div>
+</body>
+</html>
