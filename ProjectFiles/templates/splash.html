@@ -1,38 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PartyNow</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PartyNow</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 
 <body>
+  <div id="intro-screen" class="intro">
+    <img src="{{ url_for('static', filename='party_logo.png') }}"
+         alt="PartyNow Logo"
+         class="logo-img">
+  </div>
 
-    <div id="intro-screen" class="intro">
-        <h1 class="logo">🎉 PartyNow</h1>
-    </div>
+  <script>
+    const HOLD_MS = 600;   // how long logo stays before fading out
+    const FADE_MS = 700;  // fade-out duration (match your CSS transition time)
 
-    
-    <div id="main-content" class="page hidden">
-        <div class="card">
-            <h1>PartyNow</h1>
-            <p>Turn your room into the Perfect party zone with AI</p>
-
-            <div class="btn-row">
-                <a class="btn" href="{{ url_for('login') }}">Get Started</a>
-                <a class="btn btn-ghost" href="{{ url_for('upload') }}">Skip to Upload</a>
-            </div>
-        </div>
-    </div>
-
-<script>
     setTimeout(() => {
-        document.getElementById("intro-screen").style.display = "none";
-        document.getElementById("main-content").classList.remove("hidden");
-    }, 2000); 
-</script>
+      document.getElementById("intro-screen").classList.add("fade-out");
+
+      setTimeout(() => {
+        window.location.href = "{{ url_for('login') }}";
+      }, FADE_MS);
+
+    }, HOLD_MS);
+  </script>
 
 </body>
 </html>
