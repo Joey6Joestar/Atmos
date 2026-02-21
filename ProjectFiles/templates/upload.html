@@ -3,32 +3,74 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Upload - PartyNow</title>
+  <title>PartyNow - Chat</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
-<body class="page">
-  <div class="card">
-    <h1>Upload Your Room 📸</h1>
-    <p>Pick a party vibe and upload a photo of your room.</p>
 
-    <form class="form" method="POST" enctype="multipart/form-data">
-      <label>
-    Describe your party vibe
-    <textarea name="partyPrompt" 
-              placeholder="Example: Neon rave with LED strips, fog machine, DJ table, dark lighting..."
-              rows="4"
-              required></textarea>
-  </label>
+<body class="chat-page">
+  <div class="chat-shell">
 
-      <label>
-        Room photo
-        <input type="file" name="photo" accept="image/*" required>
-      </label>
+    <div class="chat-header">
+      <div class="chat-title">
+        <div class="dot"></div>
+        <div>
+          <div class="brand">PartyNow</div>
+          <div class="sub">Describe your party vibe + add a room photo</div>
+        </div>
+      </div>
+      <a class="header-link" href="{{ url_for('splash') }}">Exit</a>
+    </div>
 
-      <button class="btn" type="submit">Generate Party Look</button>
-    </form>
+    <div id="chatLog" class="chat-log">
+      <div class="bubble ai">
+        <div class="bubble-label">PartyNow</div>
+        <div>Drop a room photo and tell me the vibe. I’ll generate the party look and what you’re missing.</div>
+      </div>
 
-    <a class="link" href="{{ url_for('splash') }}">← Back to Splash</a>
+      {% if filename and party_prompt %}
+      <div class="bubble user">
+        <div class="bubble-label">You</div>
+        <div class="msg">{{ party_prompt }}</div>
+        <img class="chat-img" src="{{ url_for('static', filename='uploads/' + filename) }}" alt="Uploaded room">
+      </div>
+
+      <div class="bubble ai">
+        <div class="bubble-label">PartyNow</div>
+        <div>Got it. Next step: I’ll send this image + your vibe to Gemini and generate your upgraded room.</div>
+      </div>
+      {% endif %}
+    </div>
+
+{% if success %}
+  <div id="toast" class="toast">
+    Submitted successfully ✅
   </div>
+{% endif %}
+
+<div id="previewRow" class="preview-row hidden">
+  <div class="preview-chip">
+    <span id="previewName">image.jpg</span>
+    <button type="button" id="removeImg" class="x-btn" title="Remove">×</button>
+  </div>
+  <img id="previewImg" class="mini-preview" alt="Preview">
+</div>
+
+<form class="chat-input" method="POST" enctype="multipart/form-data">
+  <input id="photoInput" type="file" name="photo" accept="image/*" hidden>
+
+  <label for="photoInput" class="icon-btn">+</label>
+
+  <textarea
+    name="partyPrompt"
+    class="text-bar"
+    rows="1"
+    placeholder="Describe the party vibe..."
+    required></textarea>
+
+  <button type="submit" class="send-btn" title="Send">→</button>
+</form>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+
 </body>
 </html>

@@ -5,20 +5,34 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PartyNow</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css')}}">
-
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 
-<body class="page">
-    <div class="card">
-        <h1>PartyNow</h1>
-        <p>Turn your room into the Perfect party zone with AI</p>
+<body>
 
-        <div class="btn-row">
-            <a class="btn" href="{{ url_for('login') }}">Get Started</a>
-            <a class="btn btn-ghost" href="{{ url_for('upload') }}">Skip to Upload</a>
+    <div id="intro-screen" class="intro">
+        <h1 class="logo">🎉 PartyNow</h1>
+    </div>
+
+    
+    <div id="main-content" class="page hidden">
+        <div class="card">
+            <h1>PartyNow</h1>
+            <p>Turn your room into the Perfect party zone with AI</p>
+
+            <div class="btn-row">
+                <a class="btn" href="{{ url_for('login') }}">Get Started</a>
+                <a class="btn btn-ghost" href="{{ url_for('upload') }}">Skip to Upload</a>
+            </div>
         </div>
     </div>
+
+<script>
+    setTimeout(() => {
+        document.getElementById("intro-screen").style.display = "none";
+        document.getElementById("main-content").classList.remove("hidden");
+    }, 2000); 
+</script>
 
 </body>
 </html>
