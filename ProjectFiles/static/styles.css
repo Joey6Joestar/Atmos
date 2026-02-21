@@ -1,6 +1,5 @@
 * { box-sizing: border-box; }
 
-/* ===== Shared pages (splash/login) ===== */
 .page {
   min-height: 100vh;
   display: flex;
@@ -65,17 +64,18 @@ input, select {
 }
 .link:hover { text-decoration: underline; }
 
-/* ===== Intro splash animation ===== */
 .intro {
   height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0f0f12;
-  color: white;
-  font-size: 40px;
-  font-weight: bold;
-  animation: fadeIn 1.5s ease-in-out;
+
+  background: #000;
+
+  background: radial-gradient(circle at center, #0a0a0f 0%, #000 60%, #000 100%);
+
+  opacity: 1;
+  transition: opacity 1.0s ease-in-out; 
 }
 
 .logo {
@@ -97,7 +97,6 @@ input, select {
   to { opacity: 1; }
 }
 
-/* ===== Chat UI (Upload Screen) ===== */
 .chat-page {
   margin: 0;
   min-height: 100vh;
@@ -154,7 +153,7 @@ input, select {
 
 .chat-log {
   flex: 1;
-  padding: 18px 16px 110px; /* room for input bar */
+  padding: 18px 16px 110px; 
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -217,15 +216,16 @@ input, select {
   background: #17171c;
   color: #f4f4f7;
 
-  display: flex;              /* IMPORTANT */
-  align-items: center;         /* IMPORTANT */
-  justify-content: center;     /* IMPORTANT */
-  line-height: 1;              /* IMPORTANT */
+  display: flex;             
+  align-items: center;        
+  justify-content: center;     
+  line-height: 1;              
   font-weight: 800;
 
   font-size: 24px;
   cursor: pointer;
-  user-select: none;
+  -webkit-user-select: none;  
+user-select: none;
 }
 
 .icon-btn:hover { opacity: 0.9; }
@@ -320,4 +320,11 @@ input, select {
 
 .preview-row {
   bottom: 72px; 
+}
+
+.logo-img {
+    height:700px;
+  width: 500px;
+  display: block;
+  margin: 0 auto 20px auto;
 }
