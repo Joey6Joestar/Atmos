@@ -209,7 +209,6 @@ input, select {
   align-items: flex-end;
 }
 
-/* ✅ FIXED: centers the + inside the button */
 .icon-btn {
   width: 42px;
   height: 42px;
