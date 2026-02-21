@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 import os
 
 from flask_sqlalchemy import SQLAlchemy
@@ -92,6 +92,7 @@ def logout():
 @app.route("/upload", methods=["GET", "POST"])
 @login_required
 def upload():
+    print("FLASK current_user:", current_user.is_authenticated, getattr(current_user, "email", None))
     if request.method == "POST":
         file = request.files.get("photo")
         party_prompt = (request.form.get("partyPrompt") or "").strip()
@@ -125,8 +126,32 @@ def upload():
     )
     return render_template("upload.html", user=current_user)
 
+
+@app.route("/auth/supabase-login", methods=["POST"])
+def supabase_login():
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+
+    if not email:
+        return jsonify({"ok": False, "error": "Missing email"}), 400
+
+    # Find existing user or create one
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        # Create a user WITHOUT a password (Google-only account)
+        user = User(email=email, password_hash=generate_password_hash(os.urandom(24).hex()))
+        db.session.add(user)
+        db.session.commit()
+
+    login_user(user)
+    return jsonify({"ok": True})
+
 with app.app_context():
     db.create_all()
+
+@app.route("/auth/callback")
+def oauth_callback():
+    return render_template("auth_callback.html")
 
 if __name__ == "__main__":
     app.run(debug=True)

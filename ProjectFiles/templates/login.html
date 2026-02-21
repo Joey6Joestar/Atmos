@@ -12,7 +12,14 @@
         <h1>Login</h1>
         <p>Welcome back to PartyNow</p>
 
-        <!-- Flash messages (errors like invalid login) -->
+        <!-- Google OAuth Button (ADD THIS SECTION) -->
+        <button class="btn" type="button" id="googleBtn">
+            Continue with Google
+        </button>
+
+        <p style="text-align:center; margin: 15px 0;">or</p>
+
+        <!-- Flash messages -->
         {% with messages = get_flashed_messages() %}
             {% if messages %}
                 <div class="flash">
@@ -23,6 +30,7 @@
             {% endif %}
         {% endwith %}
 
+        <!-- Normal Email/Password Login -->
         <form class="form" action="{{ url_for('login') }}" method="POST">
             <label>
                 Email
@@ -54,5 +62,32 @@
 
     
     </div>
+
+    <!-- SUPABASE SCRIPT (ADD THIS BEFORE </body>) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = "https://vvdagrkxsppogpkdjhzg.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2ZGFncmt4c3Bwb2dwa2RqaHpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NDM4MDcsImV4cCI6MjA4NzIxOTgwN30.rXjW7oDG0SP5oyQh4L7ZSKMjojNNY2kOs5w2eceWl7Q";
+
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    flowType: "implicit",
+    detectSessionInUrl: true,
+    persistSession: true,
+  },
+});
+
+        document.getElementById("googleBtn").addEventListener("click", async () => {
+            const { error } = await supabaseClient.auth.signInWithOAuth({
+                provider: "google",
+                options: {
+                    redirectTo: "http://127.0.0.1:5000/auth/callback"
+                }
+            });
+
+            if (error) alert(error.message);
+        });
+    </script>
+
 </body>
 </html>
