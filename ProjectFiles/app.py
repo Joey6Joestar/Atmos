@@ -173,18 +173,34 @@ def upload():
 
         # 2. Generate transformed room image using Replicate Flux img2img
         # Flux requires HIGH denoising (0.95+) for visible changes - 0.7 gives almost no change
+        # Use the user's prompt directly - they describe what they want (gaming room, party, etc.)
         transform_prompt = (
-            f"The same room fully decorated for a party: {party_prompt}. "
-            "Add balloons, streamers, string lights, a party table with food and cake, "
-            "colorful decorations, festive lighting, party supplies. "
-            "Photorealistic interior photography, well lit, vibrant party atmosphere."
+            f"The same room transformed into: {party_prompt}. "
+            "First take note of the existing room shape and furniture+decorations present." 
+            "Then, using the same objects and furniture as the original, move or add furniture or objects around to create a new room design that matches the style of the users prompt."
+            "DO NOT CHANGE THE EXISTING ROOM SHAPE OR STRUCTURE. ONLY MOVE OR ADD FURNITURE AND DECORATIONS."
+            "Photorealistic interior photography, well lit, high quality."
         )
 
         try:
             import replicate
+            from PIL import Image
+
             if not REPLICATE_API_TOKEN:
                 raise ValueError("REPLICATE_API_TOKEN not set. Add it to your environment.")
-            with open(filepath, "rb") as f:
+
+            # bxclib2/flux_img2img resizes internally and can produce odd dimensions -> tensor error.
+            # Force 512x512 (Flux-native size) so the model never hits odd-axis math.
+            TARGET_SIZE = 512
+            with Image.open(filepath) as img:
+                img = img.convert("RGB")
+                w, h = img.size
+                img = img.resize((TARGET_SIZE, TARGET_SIZE), Image.Resampling.LANCZOS)
+                resized_path = os.path.join(app.config["UPLOAD_FOLDER"], f"_resized_{filename}")
+                img.save(resized_path, "JPEG", quality=95)
+                path_to_send = resized_path
+
+            with open(path_to_send, "rb") as f:
                 output = replicate.run(
                     "bxclib2/flux_img2img:0ce45202d83c6bd379dfe58f4c0c41e6cadf93ebbd9d938cc63cc0f2fcb729a5",
                     input={
@@ -194,6 +210,11 @@ def upload():
                         "steps": 30,
                     },
                 )
+            if path_to_send != filepath and os.path.exists(path_to_send):
+                try:
+                    os.remove(path_to_send)
+                except OSError:
+                    pass
             if not output:
                 raise ValueError("Replicate returned no output")
 
