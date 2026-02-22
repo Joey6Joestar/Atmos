@@ -1,5 +1,9 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 import os
+import time
+import requests
+import jwt
+from jwt.algorithms import RSAAlgorithm
 
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (
@@ -35,6 +39,52 @@ class User(UserMixin, db.Model):
 @login_manager.user_loader
 def load_user(user_id: str):
     return db.session.get(User, int(user_id))
+
+# ---------- Supabase token verification (SECURE) ----------
+JWKS_CACHE = {"keys": None, "fetched_at": 0}
+
+def get_jwks():
+    # Cache for 1 hour
+    if JWKS_CACHE["keys"] and (time.time() - JWKS_CACHE["fetched_at"] < 3600):
+        return JWKS_CACHE["keys"]
+
+    jwks_url = "https://vvdagrkxsppogpkdjhzg.supabase.co/auth/v1/.well-known/jwks.json"
+    resp = requests.get(jwks_url, timeout=10)
+    resp.raise_for_status()
+    jwks = resp.json()
+
+    JWKS_CACHE["keys"] = jwks["keys"]
+    JWKS_CACHE["fetched_at"] = time.time()
+    return JWKS_CACHE["keys"]
+
+def verify_supabase_access_token(access_token: str):
+    header = jwt.get_unverified_header(access_token)
+    kid = header.get("kid")
+    alg = header.get("alg")
+
+    if not kid or not alg:
+        raise Exception("Token header missing kid/alg")
+
+    keys = get_jwks()
+    key_dict = next((k for k in keys if k.get("kid") == kid), None)
+    if not key_dict:
+        raise Exception("No matching public key (kid)")
+
+    # Supabase projects can use RSA or EC keys
+    if key_dict.get("kty") == "RSA":
+        public_key = RSAAlgorithm.from_jwk(key_dict)
+    else:
+        public_key = jwt.algorithms.ECAlgorithm.from_jwk(key_dict)
+
+    payload = jwt.decode(
+        access_token,
+        public_key,
+        algorithms=[alg],
+        audience="authenticated",
+        issuer="https://vvdagrkxsppogpkdjhzg.supabase.co/auth/v1",
+    )
+    return payload
+# ---------------------------------------------------------
 
 @app.route("/")
 def splash():
@@ -92,7 +142,9 @@ def logout():
 @app.route("/upload", methods=["GET", "POST"])
 @login_required
 def upload():
+    # You can delete this print later once you're done debugging
     print("FLASK current_user:", current_user.is_authenticated, getattr(current_user, "email", None))
+
     if request.method == "POST":
         file = request.files.get("photo")
         party_prompt = (request.form.get("partyPrompt") or "").strip()
@@ -124,34 +176,51 @@ def upload():
         filename=None,
         party_prompt=None
     )
-    return render_template("upload.html", user=current_user)
-
 
 @app.route("/auth/supabase-login", methods=["POST"])
 def supabase_login():
     data = request.get_json(silent=True) or {}
-    email = (data.get("email") or "").strip().lower()
+    access_token = data.get("access_token")
 
+    if not access_token:
+        return jsonify({"ok": False, "error": "Missing access_token"}), 400
+
+    try:
+        payload = verify_supabase_access_token(access_token)
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Invalid token: {e}"}), 401
+
+    email = (payload.get("email") or "").strip().lower()
     if not email:
-        return jsonify({"ok": False, "error": "Missing email"}), 400
+        return jsonify({"ok": False, "error": "No email in token"}), 400
 
-    # Find existing user or create one
+    # 🔒 Allowlist check
+    ALLOWED_EMAILS = {
+        "akshaycgupta46@gmail.com",
+    }
+
+    if email not in ALLOWED_EMAILS:
+        return jsonify({"ok": False, "error": "Access denied"}), 403
+
+    # Find or create user
     user = User.query.filter_by(email=email).first()
     if not user:
-        # Create a user WITHOUT a password (Google-only account)
-        user = User(email=email, password_hash=generate_password_hash(os.urandom(24).hex()))
+        user = User(
+            email=email,
+            password_hash=generate_password_hash(os.urandom(24).hex())
+        )
         db.session.add(user)
         db.session.commit()
 
     login_user(user)
     return jsonify({"ok": True})
 
-with app.app_context():
-    db.create_all()
-
 @app.route("/auth/callback")
 def oauth_callback():
     return render_template("auth_callback.html")
+
+with app.app_context():
+    db.create_all()
 
 if __name__ == "__main__":
     app.run(debug=True)

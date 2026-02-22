@@ -3,16 +3,23 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Sign Up - PartyNow</title>
+  <title>Sign Up - Atmos</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 
 <body class="page">
-  <div class="card">
+  <div class="auth-layout">
+    <div class="auth-brand">
+      <img class="hero-logo"
+           src="{{ url_for('static', filename='brand/atmos-logo.png') }}"
+           alt="Atmos logo">
+    </div>
+    <div class="auth-form-wrapper">
+      <div class="card">
     <h1>Sign Up</h1>
-    <p>Create your PartyNow account</p>
+    <p>Create your Atmos account</p>
 
-    <!-- Flash messages (errors / success like "account created") -->
+    <!-- Flash messages -->
     {% with messages = get_flashed_messages() %}
       {% if messages %}
         <div class="flash">
@@ -26,7 +33,7 @@
     <form class="form" method="POST" action="{{ url_for('signup') }}">
       <label>
         Email
-        <input name="email" type="email" placeholder="joey@example.com" required>
+        <input name="email" type="email" placeholder="you@example.com" required>
       </label>
 
       <label>
@@ -43,6 +50,8 @@
     </p>
 
     <a class="link" href="{{ url_for('splash') }}">Back</a>
+      </div>
+    </div>
   </div>
 </body>
 </html>

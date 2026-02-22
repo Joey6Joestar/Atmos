@@ -3,16 +3,23 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Login - PartyNow</title>
+    <title>Login - Atmos</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css')}}">
 </head>
 
 <body class="page">
-    <div class="card">
+    <div class="auth-layout">
+        <div class="auth-brand">
+            <img class="hero-logo"
+                 src="{{ url_for('static', filename='brand/atmos-logo.png') }}"
+                 alt="Atmos logo">
+        </div>
+        <div class="auth-form-wrapper">
+            <div class="card">
         <h1>Login</h1>
-        <p>Welcome back to PartyNow</p>
+        <p>Welcome back to Atmos</p>
 
-        <!-- Google OAuth Button (ADD THIS SECTION) -->
+        <!-- Google OAuth Button -->
         <button class="btn" type="button" id="googleBtn">
             Continue with Google
         </button>
@@ -34,17 +41,17 @@
         <form class="form" action="{{ url_for('login') }}" method="POST">
             <label>
                 Email
-                <input 
+                <input
                     name="email"
                     type="email"
-                    placeholder="joey@example.com"
+                    placeholder="you@example.com"
                     required
                 >
             </label>
 
             <label>
                 Password
-                <input 
+                <input
                     name="password"
                     type="password"
                     placeholder="********"
@@ -60,22 +67,24 @@
             <a class="link" href="{{ url_for('signup') }}">Sign up</a>
         </p>
 
-    
+        <a class="link" href="{{ url_for('splash') }}">Back</a>
+            </div>
+        </div>
     </div>
 
-    <!-- SUPABASE SCRIPT (ADD THIS BEFORE </body>) -->
+    <!-- SUPABASE SCRIPT -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         const SUPABASE_URL = "https://vvdagrkxsppogpkdjhzg.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2ZGFncmt4c3Bwb2dwa2RqaHpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NDM4MDcsImV4cCI6MjA4NzIxOTgwN30.rXjW7oDG0SP5oyQh4L7ZSKMjojNNY2kOs5w2eceWl7Q";
 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    flowType: "implicit",
-    detectSessionInUrl: true,
-    persistSession: true,
-  },
-});
+            auth: {
+                flowType: "implicit",
+                detectSessionInUrl: true,
+                persistSession: true,
+            },
+        });
 
         document.getElementById("googleBtn").addEventListener("click", async () => {
             const { error } = await supabaseClient.auth.signInWithOAuth({

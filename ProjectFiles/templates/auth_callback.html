@@ -1,76 +1,89 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Signing in...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Signing in... - Atmos</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   </head>
-  <body>
-    <p>Signing you in…</p>
+  <body class="page">
+    <div class="auth-layout">
+      <div class="auth-brand">
+        <img class="hero-logo" src="{{ url_for('static', filename='brand/atmos-logo.png') }}" alt="Atmos logo">
+      </div>
+      <div class="auth-form-wrapper">
+        <div class="card">
+          <p>Signing you in…</p>
+        </div>
+      </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-  const SUPABASE_URL = "https://vvdagrkxsppogpkdjhzg.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2ZGFncmt4c3Bwb2dwa2RqaHpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NDM4MDcsImV4cCI6MjA4NzIxOTgwN30.rXjW7oDG0SP5oyQh4L7ZSKMjojNNY2kOs5w2eceWl7Q";
+      const SUPABASE_URL = "https://vvdagrkxsppogpkdjhzg.supabase.co";
+      const SUPABASE_ANON_KEY =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2ZGFncmt4c3Bwb2dwa2RqaHpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NDM4MDcsImV4cCI6MjA4NzIxOTgwN30.rXjW7oDG0SP5oyQh4L7ZSKMjojNNY2kOs5w2eceWl7Q";
 
-  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: {
-      flowType: "implicit",
-      detectSessionInUrl: false, // we'll do it manually
-      persistSession: true,
-    },
-  });
+      const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: {
+          flowType: "implicit",
+          detectSessionInUrl: false, // we'll do it manually
+          persistSession: true,
+        },
+      });
 
-  (async () => {
-    // 1) Read tokens from URL fragment (#...).
-    const hash = window.location.hash.startsWith("#")
-      ? window.location.hash.slice(1)
-      : window.location.hash;
+      (async () => {
+        // 1) Read tokens from URL fragment (#...).
+        const hash = window.location.hash.startsWith("#")
+          ? window.location.hash.slice(1)
+          : window.location.hash;
 
-    const params = new URLSearchParams(hash);
-    const access_token = params.get("access_token");
-    const refresh_token = params.get("refresh_token");
+        const params = new URLSearchParams(hash);
+        const access_token = params.get("access_token");
+        const refresh_token = params.get("refresh_token");
 
-    if (!access_token) {
-      document.body.innerHTML =
-        "<pre>No access_token in URL hash.\n\nFull URL:\n" + window.location.href + "</pre>";
-      return;
-    }
+        if (!access_token) {
+          document.body.innerHTML =
+            "<pre>No access_token in URL hash.\n\nFull URL:\n" +
+            window.location.href +
+            "</pre>";
+          return;
+        }
 
-    // 2) Tell Supabase to store the session.
-    const { data, error } = await supabaseClient.auth.setSession({
-      access_token,
-      refresh_token,
-    });
+        // 2) Store the session in the browser (Supabase).
+        const { data, error } = await supabaseClient.auth.setSession({
+          access_token,
+          refresh_token,
+        });
 
-    if (error) {
-      document.body.innerHTML = "<pre>setSession error: " + error.message + "</pre>";
-      return;
-    }
-    const email = data.session?.user?.email;
+        if (error) {
+          document.body.innerHTML = "<pre>setSession error: " + error.message + "</pre>";
+          return;
+        }
 
-const resp = await fetch("/auth/supabase-login", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ email }),
-});
+        // 3) Tell Flask to log the user in — IMPORTANT:
+        // Send the access_token to Flask so Flask can VERIFY the login
+        // (instead of trusting a raw email).
+        const resp = await fetch("/auth/supabase-login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ access_token }),
+        });
 
-let result = {};
-try {
-  result = await resp.json();
-} catch (e) {}
+        let result = {};
+        try {
+          result = await resp.json();
+        } catch (e) {}
 
-if (!resp.ok || !result.ok) {
-  document.body.innerHTML =
-    "<pre>Flask login failed: " + (result.error || resp.statusText) + "</pre>";
-  return;
-}
+        if (!resp.ok || !result.ok) {
+          document.body.innerHTML =
+            "<pre>Flask login failed: " + (result.error || resp.statusText) + "</pre>";
+          return;
+        }
 
-// success → go to the protected page
-    window.location.href = "/upload";
-
-    // later we can redirect, but keep it visible for now
-    // window.location.href = "/";
-  })();
-</script>
+        // 4) Success → go to the protected page
+        window.location.href = "/upload";
+      })();
+    </script>
   </body>
 </html>
