@@ -12,7 +12,6 @@ from flask_login import (
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-GEMINI_API_KEY = "AIzaSyAQuABLOOgIcUgTFaekURGbNiWZkb0VAaQ"
 # Needed for sessions + flash messages
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 
@@ -139,17 +138,16 @@ def logout():
     return redirect(url_for("splash"))
 
 import base64
-from PIL import Image as PILImage
-
-# Configure this at the top of your app, not inside the route
-
-
 import mimetypes
-import google.generativeai as genai
 
-# Configure once at the top level, not inside the route
+# Replicate for image generation
+REPLICATE_API_TOKEN = os.environ.get("REPLICATE_API_TOKEN", "")
 
-genai.configure(api_key="AIzaSyAQuABLOOgIcUgTFaekURGbNiWZkb0VAaQ")
+# Folder for AI-generated room transformation images
+app.config["GENERATED_FOLDER"] = "static/generated"
+os.makedirs(app.config["GENERATED_FOLDER"], exist_ok=True)
+
+
 
 @app.route("/upload", methods=["GET", "POST"])
 @login_required
@@ -163,47 +161,94 @@ def upload():
         if not file or file.filename == "":
             return render_template("upload.html", user=current_user, success=False)
 
-        # 1. Save the file
+        # 1. Save the uploaded file
         filename = file.filename
         filepath = os.path.abspath(os.path.join(app.config["UPLOAD_FOLDER"], filename))
         file.seek(0)
         file.save(filepath)
         print(f"Filepath: {filepath}")
-        print(f"File exists: {os.path.exists(filepath)}")
 
-        # 2. Call Gemini  ← try is now INSIDE the POST block
+        ai_feedback = "Here's your transformed room!"
+        generated_filename = None
+
+        # 2. Generate transformed room image using Replicate Flux img2img
+        # Flux requires HIGH denoising (0.95+) for visible changes - 0.7 gives almost no change
+        transform_prompt = (
+            f"The same room fully decorated for a party: {party_prompt}. "
+            "Add balloons, streamers, string lights, a party table with food and cake, "
+            "colorful decorations, festive lighting, party supplies. "
+            "Photorealistic interior photography, well lit, vibrant party atmosphere."
+        )
+
         try:
-            model = genai.GenerativeModel("gemini-2.5-flash")
-
+            import replicate
+            if not REPLICATE_API_TOKEN:
+                raise ValueError("REPLICATE_API_TOKEN not set. Add it to your environment.")
             with open(filepath, "rb") as f:
-                image_data = f.read()
+                output = replicate.run(
+                    "bxclib2/flux_img2img:0ce45202d83c6bd379dfe58f4c0c41e6cadf93ebbd9d938cc63cc0f2fcb729a5",
+                    input={
+                        "image": f,
+                        "positive_prompt": transform_prompt,
+                        "denoising": 0.95,
+                        "steps": 30,
+                    },
+                )
+            if not output:
+                raise ValueError("Replicate returned no output")
 
-            mime_type, _ = mimetypes.guess_type(filepath)
-            if not mime_type:
-                mime_type = "image/jpeg"
+            # Replicate returns FileOutput - use .read() for bytes or .url to fetch
+            img_bytes = None
+            if hasattr(output, "read"):
+                img_bytes = output.read()
+            elif hasattr(output, "url"):
+                img_resp = requests.get(str(output.url), timeout=60)
+                img_resp.raise_for_status()
+                img_bytes = img_resp.content
+            elif isinstance(output, (list, tuple)) and output:
+                item = output[0]
+                if hasattr(item, "read"):
+                    img_bytes = item.read()
+                elif hasattr(item, "url"):
+                    img_resp = requests.get(str(item.url), timeout=60)
+                    img_resp.raise_for_status()
+                    img_bytes = img_resp.content
+                else:
+                    img_resp = requests.get(str(item), timeout=60)
+                    img_resp.raise_for_status()
+                    img_bytes = img_resp.content
+            else:
+                out_str = str(output)
+                if out_str.startswith("data:"):
+                    # Data URL: data:image/png;base64,...
+                    header, b64 = out_str.split(",", 1)
+                    img_bytes = base64.b64decode(b64)
+                else:
+                    img_resp = requests.get(out_str, timeout=60)
+                    img_resp.raise_for_status()
+                    img_bytes = img_resp.content
 
-            prompt = (
-                f"You are a professional event designer. Analyze this room photo and "
-                f"provide feedback based on this vibe: '{party_prompt}'. "
-                f"Suggest 3 specific improvements for lighting, layout, or decor. No more 50 words"
-            )
+            if not img_bytes or len(img_bytes) < 100:
+                raise ValueError("Replicate returned empty or invalid image")
 
-            response = model.generate_content([prompt, {"mime_type": mime_type, "data": image_data}])
-            ai_feedback = response.text
-
+            generated_filename = f"transformed_{os.path.splitext(filename)[0]}.png"
+            gen_path = os.path.join(app.config["GENERATED_FOLDER"], generated_filename)
+            os.makedirs(app.config["GENERATED_FOLDER"], exist_ok=True)
+            with open(gen_path, "wb") as out:
+                out.write(img_bytes)
         except Exception as e:
             import traceback
             traceback.print_exc()
-            ai_feedback = "I'm having trouble seeing that image right now. Please try again."
+            ai_feedback = f"Image generation failed: {str(e)}"
 
-        # return is OUTSIDE the except, but still inside POST block
         return render_template(
             "upload.html",
             user=current_user,
             success=True,
             filename=filename,
             party_prompt=party_prompt,
-            ai_feedback=ai_feedback
+            ai_feedback=ai_feedback,
+            generated_filename=generated_filename,
         )
 
     return render_template("upload.html", user=current_user, success=False)

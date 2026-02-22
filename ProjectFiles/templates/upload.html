@@ -28,36 +28,29 @@
       </div>
 
       {% if filename and party_prompt %}
-    <div class="bubble user">
+      <div class="bubble user">
         <div class="bubble-label">You</div>
         <div class="msg">{{ party_prompt }}</div>
         <img class="chat-img" src="{{ url_for('static', filename='uploads/' + filename) }}" alt="Uploaded room">
-    </div>
+      </div>
 
-    <div class="bubble ai">
-    <div class="bubble-label">Atmos</div>
-        <div>
-            {% if ai_feedback %}
-                {{ ai_feedback }}
-            {% else %}
-                Analyzing your event setup...
-            {% endif %}
+      <div class="bubble ai">
+        <div class="bubble-label">Atmos</div>
+        {% if generated_filename %}
+        <div class="generated-room-wrap">
+          <img class="chat-img generated-room" src="{{ url_for('static', filename='generated/' + generated_filename) }}" alt="Transformed room">
         </div>
-    </div>
-    {% endif %}
-
-    {% if success %}
-    <div id="toast" class="toast">
-        Submitted successfully ✅
-    </div>
-    {% endif %}
+        {% endif %}
+        <div>{{ ai_feedback or 'Generating your transformed room...' }}</div>
+      </div>
+      {% endif %}
     </div>
 
-<!--{% if success %}
+{% if success %}
   <div id="toast" class="toast">
     Submitted successfully ✅
   </div>
-{% endif %}-->
+{% endif %}
 
 <div id="previewRow" class="preview-row hidden">
   <div class="preview-chip">
