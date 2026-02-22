@@ -3,7 +3,6 @@ import os
 import time
 import requests
 import jwt
-from jwt.algorithms import RSAAlgorithm
 
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (
@@ -13,7 +12,7 @@ from flask_login import (
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-
+GEMINI_API_KEY = "AIzaSyAQuABLOOgIcUgTFaekURGbNiWZkb0VAaQ"
 # Needed for sessions + flash messages
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 
@@ -139,43 +138,75 @@ def logout():
     logout_user()
     return redirect(url_for("splash"))
 
+import base64
+from PIL import Image as PILImage
+
+# Configure this at the top of your app, not inside the route
+
+
+import mimetypes
+import google.generativeai as genai
+
+# Configure once at the top level, not inside the route
+
+genai.configure(api_key="AIzaSyAQuABLOOgIcUgTFaekURGbNiWZkb0VAaQ")
+
 @app.route("/upload", methods=["GET", "POST"])
 @login_required
 def upload():
-    # You can delete this print later once you're done debugging
-    print("FLASK current_user:", current_user.is_authenticated, getattr(current_user, "email", None))
+    print(f"FLASK User: {getattr(current_user, 'email', 'Anonymous')} | Authenticated: {current_user.is_authenticated}")
 
     if request.method == "POST":
         file = request.files.get("photo")
         party_prompt = (request.form.get("partyPrompt") or "").strip()
 
         if not file or file.filename == "":
-            return render_template(
-                "upload.html",
-                user=current_user,
-                success=False,
-                filename=None,
-                party_prompt=None
+            return render_template("upload.html", user=current_user, success=False)
+
+        # 1. Save the file
+        filename = file.filename
+        filepath = os.path.abspath(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+        file.seek(0)
+        file.save(filepath)
+        print(f"Filepath: {filepath}")
+        print(f"File exists: {os.path.exists(filepath)}")
+
+        # 2. Call Gemini  ← try is now INSIDE the POST block
+        try:
+            model = genai.GenerativeModel("gemini-2.5-flash")
+
+            with open(filepath, "rb") as f:
+                image_data = f.read()
+
+            mime_type, _ = mimetypes.guess_type(filepath)
+            if not mime_type:
+                mime_type = "image/jpeg"
+
+            prompt = (
+                f"You are a professional event designer. Analyze this room photo and "
+                f"provide feedback based on this vibe: '{party_prompt}'. "
+                f"Suggest 3 specific improvements for lighting, layout, or decor. No more 50 words"
             )
 
-        filepath = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
-        file.save(filepath)
+            response = model.generate_content([prompt, {"mime_type": mime_type, "data": image_data}])
+            ai_feedback = response.text
 
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            ai_feedback = "I'm having trouble seeing that image right now. Please try again."
+
+        # return is OUTSIDE the except, but still inside POST block
         return render_template(
             "upload.html",
             user=current_user,
             success=True,
-            filename=file.filename,
-            party_prompt=party_prompt
+            filename=filename,
+            party_prompt=party_prompt,
+            ai_feedback=ai_feedback
         )
 
-    return render_template(
-        "upload.html",
-        user=current_user,
-        success=False,
-        filename=None,
-        party_prompt=None
-    )
+    return render_template("upload.html", user=current_user, success=False)
 
 @app.route("/auth/supabase-login", methods=["POST"])
 def supabase_login():
